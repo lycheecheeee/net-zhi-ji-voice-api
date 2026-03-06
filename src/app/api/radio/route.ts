@@ -291,10 +291,10 @@ ${description ? `內容：${description}` : ''}
   }
 }
 
-// 語音合成
+// 語音合成 - 使用 Cantonese.ai API
 async function synthesizeVoice(
   text: string,
-  voice: string = 'tongtong'
+  voice: string = 'cantonese_female'
 ): Promise<string | null> {
   // 清理文本
   const cleanText = text
@@ -303,21 +303,70 @@ async function synthesizeVoice(
     .trim()
 
   // 限制文本長度（避免超時）
-  const maxLen = 200
+  const maxLen = 300
   const shortText = cleanText.slice(0, maxLen)
 
+  const CANTONESE_API_KEY = process.env.CANTONESE_API_KEY
+
+  // 如果沒有 Cantonese API Key，嘗試使用 ZAI TTS
+  if (!CANTONESE_API_KEY) {
+    console.log('⚠️ CANTONESE_API_KEY 未設置，使用 ZAI TTS...')
+    try {
+      const zai = createZAI()
+      const arrayBuffer = await zai.tts(shortText, 'tongtong', 0.95)
+      const buffer = Buffer.from(new Uint8Array(arrayBuffer))
+      return buffer.toString('base64')
+    } catch (error) {
+      console.error('❌ ZAI TTS 失敗:', error)
+      return null
+    }
+  }
+
   try {
-    console.log('🎵 開始語音合成...')
-    const zai = createZAI()
+    console.log('🎵 使用 Cantonese.ai 進行語音合成...')
 
-    const arrayBuffer = await zai.tts(shortText, voice, 0.95)
-    const buffer = Buffer.from(new Uint8Array(arrayBuffer))
-    const base64 = buffer.toString('base64')
+    // Cantonese.ai API 端點
+    const response = await fetch('https://www.cantonese.ai/api/tts', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${CANTONESE_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        text: shortText,
+        voice: voice === 'tongtong' ? 'cantonese_female' : voice,
+        speed: 0.95,
+        pitch: 0,
+      }),
+    })
 
-    console.log(`✅ 語音合成成功: ${buffer.length} bytes`)
-    return base64
+    if (!response.ok) {
+      const errorText = await response.text()
+      console.error(`Cantonese.ai API 錯誤: ${response.status}`, errorText)
+      throw new Error(`Cantonese.ai API 錯誤: ${response.status}`)
+    }
+
+    const data = await response.json()
+
+    // Cantonese.ai 返回 audio_url 或 audio_base64
+    if (data.audio_url) {
+      // 下載音頻文件
+      console.log('📥 下載音頻文件...')
+      const audioResponse = await fetch(data.audio_url)
+      const arrayBuffer = await audioResponse.arrayBuffer()
+      const buffer = Buffer.from(new Uint8Array(arrayBuffer))
+      console.log(`✅ Cantonese.ai 語音合成成功: ${buffer.length} bytes`)
+      return buffer.toString('base64')
+    } else if (data.audio_base64 || data.audioBase64) {
+      const base64 = data.audio_base64 || data.audioBase64
+      console.log(`✅ Cantonese.ai 語音合成成功: ${base64.length} bytes`)
+      return base64
+    } else {
+      console.error('❌ Cantonese.ai 回應格式錯誤:', data)
+      return null
+    }
   } catch (error) {
-    console.error('❌ 語音合成失敗:', error)
+    console.error('❌ Cantonese.ai 語音合成失敗:', error)
     return null
   }
 }
@@ -401,7 +450,8 @@ export async function POST(req: NextRequest) {
 export async function GET() {
   return NextResponse.json({
     schedule: PROGRAM_SCHEDULE,
-    availableVoices: ['tongtong', 'chuichui', 'xiaochen', 'jam', 'kazi', 'douji', 'luodo'],
+    availableVoices: ['cantonese_female', 'cantonese_male', 'tongtong', 'chuichui', 'xiaochen', 'jam'],
     description: '24小時廣東話財經電台 API',
+    ttsProvider: 'Cantonese.ai',
   })
 }
