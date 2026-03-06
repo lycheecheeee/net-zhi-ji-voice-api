@@ -1,5 +1,63 @@
 import { NextRequest, NextResponse } from 'next/server'
-import ZAI from 'z-ai-web-dev-sdk'
+
+// ZAI SDK 配置 - 從環境變量讀取
+const getZAIConfig = () => ({
+  baseUrl: process.env.ZAI_BASE_URL || 'https://api.z.ai/v1',
+  apiKey: process.env.ZAI_API_KEY || '',
+})
+
+// 簡化的 ZAI 類 (直接使用 fetch)
+class ZAIClient {
+  private config: { baseUrl: string; apiKey: string }
+
+  constructor(config: { baseUrl: string; apiKey: string }) {
+    this.config = config
+  }
+
+  async chatCompletion(messages: Array<{ role: string; content: string }>, options: any = {}) {
+    const response = await fetch(`${this.config.baseUrl}/chat/completions`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${this.config.apiKey}`,
+      },
+      body: JSON.stringify({
+        messages,
+        ...options,
+      }),
+    })
+
+    if (!response.ok) {
+      throw new Error(`API error: ${response.status}`)
+    }
+
+    return response.json()
+  }
+
+  async tts(text: string, voice: string = 'tongtong', speed: number = 0.95) {
+    const response = await fetch(`${this.config.baseUrl}/audio/tts`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${this.config.apiKey}`,
+      },
+      body: JSON.stringify({
+        input: text,
+        voice,
+        speed,
+        response_format: 'wav',
+      }),
+    })
+
+    if (!response.ok) {
+      throw new Error(`TTS API error: ${response.status}`)
+    }
+
+    return response.arrayBuffer()
+  }
+}
+
+const createZAI = () => new ZAIClient(getZAIConfig())
 
 // 節目類型定義
 type BroadcastType = 'finance_morning' | 'finance_opening' | 'finance_noon' |
@@ -212,21 +270,20 @@ ${description ? `內容：${description}` : ''}
   const prompt = prompts[type] || prompts.general_news
 
   try {
-    const zai = await ZAI.create()
+    const zai = createZAI()
 
-    const completion = await zai.chat.completions.create({
-      messages: [
-        {
-          role: 'system',
-          content: '你係專業粵語電台主播，只輸出純文字粵語腳本。使用地道廣東話口語。'
-        },
-        { role: 'user', content: prompt }
-      ],
+    const completion = await zai.chatCompletion([
+      {
+        role: 'system',
+        content: '你係專業粵語電台主播，只輸出純文字粵語腳本。使用地道廣東話口語。'
+      },
+      { role: 'user', content: prompt }
+    ], {
       temperature: 0.8,
       max_tokens: 500,
     })
 
-    const content = completion.choices[0]?.message?.content
+    const content = completion.choices?.[0]?.message?.content
     return content || getDefaultScript(type, title, hour)
   } catch (error) {
     console.error('❌ 腳本生成失敗:', error)
@@ -245,35 +302,19 @@ async function synthesizeVoice(
     .replace(/\n/g, '，')
     .trim()
 
-  // 分段處理（如果太長）
-  const maxLen = 500
-  const segments: string[] = []
-
-  if (cleanText.length > maxLen) {
-    for (let i = 0; i < cleanText.length; i += maxLen) {
-      segments.push(cleanText.slice(i, i + maxLen))
-    }
-  } else {
-    segments.push(cleanText)
-  }
+  // 限制文本長度（避免超時）
+  const maxLen = 200
+  const shortText = cleanText.slice(0, maxLen)
 
   try {
-    const zai = await ZAI.create()
+    console.log('🎵 開始語音合成...')
+    const zai = createZAI()
 
-    // 只處理第一段（簡化版，實際應該合併多段）
-    const response = await zai.audio.tts.create({
-      input: segments[0],
-      voice: voice as any,
-      speed: 0.95,
-      response_format: 'wav',
-      stream: false
-    })
-
-    // 獲取音頻數據並轉為 base64
-    const arrayBuffer = await response.arrayBuffer()
+    const arrayBuffer = await zai.tts(shortText, voice, 0.95)
     const buffer = Buffer.from(new Uint8Array(arrayBuffer))
     const base64 = buffer.toString('base64')
 
+    console.log(`✅ 語音合成成功: ${buffer.length} bytes`)
     return base64
   } catch (error) {
     console.error('❌ 語音合成失敗:', error)
