@@ -19,12 +19,8 @@ export const metadata: Metadata = {
   keywords: ["Net知己", "AI財經", "廣東話", "投資", "港股", "財經助手"],
   authors: [{ name: "Net 知己 Team" }],
   icons: {
-    icon: [
-      { url: "/icon.png", type: "image/png", sizes: "1024x1024" },
-    ],
-    apple: [
-      { url: "/icon.png", type: "image/png", sizes: "1024x1024" },
-    ],
+    icon: "/icon.svg",
+    apple: "/icon.svg",
   },
   openGraph: {
     title: "Net 知己 | Empathic AI 財經平台",
