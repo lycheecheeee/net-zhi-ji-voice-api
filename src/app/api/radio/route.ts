@@ -4,6 +4,13 @@ import { NextRequest, NextResponse } from 'next/server'
 const BIGMODEL_API_KEY = process.env.BIGMODEL_API_KEY || ''
 const BIGMODEL_BASE_URL = 'https://open.bigmodel.cn/api/paas/v4'
 const CANTONESE_API_KEY = process.env.CANTONESE_API_KEY || ''
+const CANTONESE_API_URL = 'https://cantonese.ai/api/tts'
+
+// Cantonese.ai 語音 ID
+const CANTONESE_VOICE_IDS = {
+  cantonese_female: '2725cf0f-efe2-4132-9e06-62ad84b2973d',
+  cantonese_male: '2725cf0f-efe2-4132-9e06-62ad84b2973d',
+} as const
 
 // BigModel 聊天 API
 async function bigModelChat(messages: Array<{ role: string; content: string }>, options: any = {}) {
@@ -237,30 +244,33 @@ async function synthesizeVoice(text: string, voice: string = 'tongtong'): Promis
     try {
       console.log('🎵 使用 Cantonese.ai 進行語音合成...')
 
-      const response = await fetch('https://cantonese.ai/api/tts', {
+      const voiceId = CANTONESE_VOICE_IDS[voice as keyof typeof CANTONESE_VOICE_IDS] 
+        || CANTONESE_VOICE_IDS.cantonese_female
+
+      const response = await fetch(CANTONESE_API_URL, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${CANTONESE_API_KEY}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
+          api_key: CANTONESE_API_KEY,
           text: cleanText,
-          voice: voice.includes('cantonese') ? voice : 'cantonese_female',
-          speed: 0.95,
+          frame_rate: '24000',
+          speed: 1.0,
+          pitch: 0,
+          language: 'cantonese',
+          output_extension: 'wav',
+          voice_id: voiceId,
+          should_return_timestamp: false
         }),
       })
 
       if (response.ok) {
-        const data = await response.json()
-
-        if (data.audio_url) {
-          const audioResponse = await fetch(data.audio_url)
-          const arrayBuffer = await audioResponse.arrayBuffer()
-          const buffer = Buffer.from(new Uint8Array(arrayBuffer))
-          return buffer.toString('base64')
-        } else if (data.audio_base64 || data.audioBase64) {
-          return data.audio_base64 || data.audioBase64
-        }
+        // Cantonese.ai 直接返回音頻數據
+        const arrayBuffer = await response.arrayBuffer()
+        const buffer = Buffer.from(new Uint8Array(arrayBuffer))
+        console.log(`✅ Cantonese.ai 成功: ${buffer.length} bytes`)
+        return buffer.toString('base64')
       }
     } catch (error) {
       console.error('❌ Cantonese.ai 失敗:', error)
