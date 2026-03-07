@@ -8,22 +8,22 @@ on:
 jobs:
   generate-hourly-program:
     runs-on: ubuntu-latest
-    
+
     steps:
       - uses: actions/checkout@v4
-      
+
       - name: Setup
         run: |
           sudo apt-get update
           sudo apt-get install -y ffmpeg
           pip install requests feedparser
-      
+
       - name: Generate program
         env:
           BIGMODEL_API_KEY: ${{ secrets.BIGMODEL_API_KEY }}
           CANTONESE_API_KEY: ${{ secrets.CANTONESE_API_KEY }}
         run: python main.py
-      
+
       - name: Upload to release
         uses: softprops/action-gh-release@v1
         with:
