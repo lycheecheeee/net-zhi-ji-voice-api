@@ -49,3 +49,23 @@ prompt
 server.log
 # Skills directory
 /skills/
+
+# Python generated files
+/broadcasts/
+*.pyc
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+# Prisma database
+*.db
+*.db-journal
+/dev.db*
+
+# Build outputs for standalone mode
+.next/standalone/
+.next/static/
+public/
+!</public/icon.png
+!</public/logo.svg
+!</public/robots.txt

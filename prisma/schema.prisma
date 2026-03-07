@@ -1,8 +1,4 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+// This is your Prisma schema file for Net 知己財經平台
 
 generator client {
   provider = "prisma-client-js"
@@ -13,20 +9,59 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model User {
-  id        String   @id @default(cuid())
-  email     String   @unique
-  name      String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+// 電台節目記錄
+model RadioProgram {
+  id             String   @id @default(cuid())
+  hour           Int      // 0-23
+  programName    String
+  broadcastType  String   // finance_morning, finance_opening, etc.
+  script         String
+  audioBase64    String?
+  audioSize      Int?
+  duration       Float?
+  generatedAt    DateTime @default(now())
+  createdAt      DateTime @default(now())
 }
 
-model Post {
+// 聊天會話
+model ChatSession {
+  id          String   @id @default(cuid())
+  sessionId   String   @unique
+  messageCount Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// 聊天訊息
+model ChatMessage {
   id        String   @id @default(cuid())
-  title     String
-  content   String?
-  published Boolean  @default(false)
-  authorId  String
+  sessionId String
+  role      String   // user, assistant
+  content   String
+  emotion   String?  // happy, concerned, excited, neutral
   createdAt DateTime @default(now())
+
+  @@index([sessionId])
+}
+
+// 用戶觀察清單
+model WatchlistItem {
+  id          String   @id @default(cuid())
+  symbol      String   // 股票代碼
+  name        String   // 股票名稱
+  price       Float?
+  change      Float?
+  changePercent Float?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([symbol])
+}
+
+// 系統設定
+model SystemConfig {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  value     String
   updatedAt DateTime @updatedAt
 }

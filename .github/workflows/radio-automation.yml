@@ -1,0 +1,69 @@
+name: Radio Automation
+
+on:
+  schedule:
+    # 每小時執行一次
+    - cron: '0 * * * *'
+  workflow_dispatch:
+    inputs:
+      hour:
+        description: '指定時段 (0-23)'
+        required: false
+        type: number
+      auto:
+        description: '自動生成當前時段'
+        required: false
+        type: boolean
+        default: true
+
+jobs:
+  generate-radio:
+    name: 生成電台節目
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: 檢查代碼庫
+        uses: actions/checkout@v4
+
+      - name: 設置 Bun
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: latest
+
+      - name: 安裝依賴
+        run: bun install
+
+      - name: 設置環境變量
+        env:
+          BIGMODEL_API_KEY: ${{ secrets.BIGMODEL_API_KEY }}
+          CANTONESE_API_KEY: ${{ secrets.CANTONESE_API_KEY }}
+        run: |
+          echo "BIGMODEL_API_KEY=$BIGMODEL_API_KEY" >> $GITHUB_ENV
+          echo "CANTONESE_API_KEY=$CANTONESE_API_KEY" >> $GITHUB_ENV
+
+      - name: 構建應用
+        run: bun run build
+
+      - name: 啟動服務
+        run: bun start &
+        
+      - name: 等待服務啟動
+        run: sleep 10
+
+      - name: 生成電台節目 (自動)
+        if: inputs.auto == true || !inputs.hour
+        run: |
+          curl http://localhost:3000/api/radio?auto=1
+
+      - name: 生成電台節目 (指定時段)
+        if: inputs.hour != null
+        run: |
+          curl http://localhost:3000/api/radio?auto=1&hour=${{ inputs.hour }}
+
+      - name: 上傳日誌
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: radio-generation-logs
+          path: server.log
+          retention-days: 7

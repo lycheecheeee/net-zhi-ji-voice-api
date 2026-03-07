@@ -15,6 +15,20 @@ from pathlib import Path
 BIGMODEL_API_KEY = os.getenv('BIGMODEL_API_KEY')
 CANTONESE_API_KEY = os.getenv('CANTONESE_API_KEY')
 
+def check_api_keys():
+    """檢查 API 密鑰是否配置"""
+    missing_keys = []
+    if not BIGMODEL_API_KEY:
+        missing_keys.append('BIGMODEL_API_KEY')
+    if not CANTONESE_API_KEY:
+        missing_keys.append('CANTONESE_API_KEY')
+
+    if missing_keys:
+        print(f"❌ 缺少環境變量: {', '.join(missing_keys)}")
+        print("請在 .env 文件或系統環境變量中設置這些密鑰")
+        return False
+    return True
+
 # 節目編排表
 PROGRAM_SCHEDULE = {
     0: {'name': '深夜財經回顧', 'type': 'finance_night'},
@@ -217,7 +231,7 @@ def synthesize_voice_cantonese(text, output_file):
     """使用 Cantonese API 合成語音"""
 
     # 清理文本
-    clean_text = text.replace('\n', '，').strip()[:500]
+    clean_text = text.replace('\n', '，').strip()
 
     # Cantonese.ai 語音 ID
     VOICE_ID = '91b6d38b-d4e9-42ce-bf3c-9793741c0d18'
@@ -235,15 +249,21 @@ def synthesize_voice_cantonese(text, output_file):
                 'speed': 1.0,
                 'pitch': 0,
                 'language': 'cantonese',
-                'output_extension': 'wav',
+                'output_extension': 'wav',  # 使用 wav 格式
                 'voice_id': VOICE_ID,
-                'should_return_timestamp': False
+                'should_return_timestamp': False,
+                'should_enhance': True,  # 啟用音頻增強
+                'should_use_turbo_model': True  # 啟用快速模式
             },
             timeout=60
         )
 
         if response.ok:
             # Cantonese.ai 直接返回音頻數據
+            # 確保輸出目錄存在
+            output_file = Path(output_file)
+            output_file.parent.mkdir(parents=True, exist_ok=True)
+
             with open(output_file, 'wb') as f:
                 f.write(response.content)
             return True
@@ -258,22 +278,26 @@ def synthesize_voice_cantonese(text, output_file):
 def main():
     print("📻 24小時廣東話財經電台")
     print("=" * 50)
-    
+
+    # 檢查 API 密鑰
+    if not check_api_keys():
+        return 1
+
     # 獲取當前時間和節目信息
     hour = get_current_hour()
     program = get_program_info(hour)
-    
+
     print(f"📅 時間: {hour}:00")
     print(f"📺 節目: {program['name']}")
     print(f"類型: {program['type']}")
-    
+
     # 抓取財經數據
     finance_data = {}
     if 'finance' in program['type']:
         print("📊 抓取財經數據...")
         finance_data = fetch_finance_data()
         print(f"恆指: {finance_data.get('hsi', 'N/A')}")
-    
+
     # 生成腳本
     print("📝 生成腳本...")
     script = generate_script_bigmodel(
@@ -284,23 +308,25 @@ def main():
     )
     print(f"腳本長度: {len(script)} 字")
     print(f"內容預覽: {script[:100]}...")
-    
+
     # 創建輸出目錄
     output_dir = Path('broadcasts')
     output_dir.mkdir(exist_ok=True)
-    
-    # 合成語音
-    output_file = output_dir / f'broadcast_{hour:02d}.mp3'
+
+    # 合成語音（使用 .wav 格式）
+    output_file = output_dir / f'broadcast_{hour:02d}.wav'
     print(f"🎵 合成語音: {output_file}")
-    
+
     if synthesize_voice_cantonese(script, output_file):
-        print(f"✅ 音頻已生成: {output_file}")
-        
+        file_size = output_file.stat().st_size
+        file_size_mb = file_size / (1024 * 1024)
+        print(f"✅ 音頻已生成: {output_file} ({file_size_mb:.2f} MB)")
+
         # 保存腳本
         script_file = output_dir / f'script_{hour:02d}.txt'
         with open(script_file, 'w', encoding='utf-8') as f:
             f.write(script)
-        
+
         # 保存元數據
         metadata = {
             'hour': hour,
@@ -308,18 +334,20 @@ def main():
             'program_type': program['type'],
             'script': script,
             'finance_data': finance_data,
+            'audio_file': str(output_file),
+            'audio_size_mb': round(file_size_mb, 2),
             'created_at': datetime.now().isoformat()
         }
-        
+
         metadata_file = output_dir / f'metadata_{hour:02d}.json'
         with open(metadata_file, 'w', encoding='utf-8') as f:
             json.dump(metadata, f, ensure_ascii=False, indent=2)
-        
+
         print("✅ 節目生成完成！")
     else:
         print("❌ 語音合成失敗")
         return 1
-    
+
     return 0
 
 if __name__ == '__main__':
