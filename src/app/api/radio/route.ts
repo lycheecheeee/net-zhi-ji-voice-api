@@ -1,10 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
+import ZAI from 'z-ai-web-dev-sdk'
 
-// BigModel API 配置
+// API 配置
 const BIGMODEL_API_KEY = process.env.BIGMODEL_API_KEY || ''
 const BIGMODEL_BASE_URL = 'https://open.bigmodel.cn/api/paas/v4'
-
-// Cantonese.ai API 配置
 const CANTONESE_API_KEY = process.env.CANTONESE_API_KEY || ''
 
 // BigModel 聊天 API
@@ -110,7 +109,7 @@ function getDefaultScript(type: BroadcastType, title: string, hour: number): str
   return defaults[type] || defaults.general_news
 }
 
-// 生成粵語播報腳本 - 使用 BigModel
+// 生成粵語播報腳本
 async function generateCantoneseScript(
   type: BroadcastType,
   programName: string,
@@ -119,7 +118,6 @@ async function generateCantoneseScript(
   financeData: RadioRequest['financeData'] | undefined,
   hour: number
 ): Promise<string> {
-  // 根據節目類型設定提示詞
   const prompts: Record<BroadcastType, string> = {
     finance_morning: `你係香港電台「${programName}」主播。
 時間：朝早${hour}點
@@ -128,7 +126,6 @@ async function generateCantoneseScript(
 請用廣東話口語報道（約150-200字）：
 - 開場：「早晨！${programName}，為你睇實市場」
 - 恆生指數表現
-- 外圍市場概況
 - 結尾：「開市前最後消息，留意9點開市大直播」
 
 只輸出純文字腳本。`,
@@ -140,7 +137,6 @@ async function generateCantoneseScript(
 請用廣東話口語報道（約150-200字）：
 - 開場：「開市大直播！港股正式開市」
 - 即時恆指點位
-- 重磅股表現
 - 結尾：「即時市況，繼續為你跟進」
 
 只輸出純文字腳本。`,
@@ -150,7 +146,6 @@ async function generateCantoneseScript(
 
 請用廣東話口語報道（約150-200字）：
 - 開場：「午間財經，上午市總結」
-- 半日市表現
 - 結尾：「下午市展望，留意16點收市檢閱」
 
 只輸出純文字腳本。`,
@@ -160,7 +155,6 @@ async function generateCantoneseScript(
 
 請用廣東話口語報道（約150-200字）：
 - 開場：「收市檢閱！港股全日收市」
-- 恆指全日表現
 - 結尾：「今日市況到此，明日再會」
 
 只輸出純文字腳本。`,
@@ -170,7 +164,6 @@ async function generateCantoneseScript(
 
 請用廣東話口語報道（約150-200字）：
 - 開場：「美股前哨，預備開市」
-- 美股期貨走勢
 - 結尾：「環球財經夜22點再同你跟進」
 
 只輸出純文字腳本。`,
@@ -180,7 +173,6 @@ async function generateCantoneseScript(
 
 請用廣東話口語報道（約150-200字）：
 - 開場：「環球財經夜，美股表現」
-- 美股走勢
 - 結尾：「明晨財經速報7點再會」
 
 只輸出純文字腳本。`,
@@ -191,7 +183,6 @@ ${description ? `內容：${description}` : ''}
 
 請用廣東話口語報道（約100-150字）：
 - 開場：「各位聽眾朋友好，${hour}點整點新聞」
-- 新聞重點
 - 結尾：「多謝收聽」
 
 只輸出純文字腳本。`,
@@ -237,50 +228,65 @@ ${description ? `內容：${description}` : ''}
   }
 }
 
-// 語音合成 - 使用 Cantonese.ai
-async function synthesizeVoice(text: string, voice: string = 'cantonese_female'): Promise<string | null> {
-  if (!CANTONESE_API_KEY) {
-    console.error('❌ CANTONESE_API_KEY 未配置')
-    return null
+// 語音合成 - 支持 Cantonese.ai 和 z.ai SDK
+async function synthesizeVoice(text: string, voice: string = 'tongtong'): Promise<string | null> {
+  // 清理文本
+  const cleanText = text.replace(/\n/g, '，').trim().slice(0, 500)
+
+  // 優先使用 Cantonese.ai（如果已配置）
+  if (CANTONESE_API_KEY) {
+    try {
+      console.log('🎵 使用 Cantonese.ai 進行語音合成...')
+
+      const response = await fetch('https://cantonese.ai/api/tts', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${CANTONESE_API_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          text: cleanText,
+          voice: voice.includes('cantonese') ? voice : 'cantonese_female',
+          speed: 0.95,
+        }),
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+
+        if (data.audio_url) {
+          const audioResponse = await fetch(data.audio_url)
+          const arrayBuffer = await audioResponse.arrayBuffer()
+          const buffer = Buffer.from(new Uint8Array(arrayBuffer))
+          return buffer.toString('base64')
+        } else if (data.audio_base64 || data.audioBase64) {
+          return data.audio_base64 || data.audioBase64
+        }
+      }
+    } catch (error) {
+      console.error('❌ Cantonese.ai 失敗，嘗試 z.ai:', error)
+    }
   }
 
-  // 清理文本
-  const cleanText = text.replace(/\n/g, '，').trim().slice(0, 300)
+  // Fallback 使用 z.ai SDK
+  console.log('🎵 使用 z.ai SDK 進行語音合成...')
 
   try {
-    console.log('🎵 使用 Cantonese.ai 進行語音合成...')
+    const zai = await ZAI.create()
 
-    const response = await fetch('https://www.cantonese.ai/api/tts', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${CANTONESE_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        text: cleanText,
-        voice: voice,
-        speed: 0.95,
-      }),
+    const response = await zai.audio.tts.create({
+      input: cleanText,
+      voice: 'tongtong',
+      speed: 0.95,
+      response_format: 'wav',
+      stream: false
     })
 
-    if (!response.ok) {
-      throw new Error(`Cantonese.ai API 錯誤: ${response.status}`)
-    }
-
-    const data = await response.json()
-
-    if (data.audio_url) {
-      const audioResponse = await fetch(data.audio_url)
-      const arrayBuffer = await audioResponse.arrayBuffer()
-      const buffer = Buffer.from(new Uint8Array(arrayBuffer))
-      return buffer.toString('base64')
-    } else if (data.audio_base64 || data.audioBase64) {
-      return data.audio_base64 || data.audioBase64
-    }
-
-    return null
+    const arrayBuffer = await response.arrayBuffer()
+    const buffer = Buffer.from(new Uint8Array(arrayBuffer))
+    return buffer.toString('base64')
   } catch (error) {
-    console.error('❌ Cantonese.ai 語音合成失敗:', error)
+    console.error('❌ z.ai TTS 失敗:', error)
     return null
   }
 }
@@ -288,7 +294,7 @@ async function synthesizeVoice(text: string, voice: string = 'cantonese_female')
 export async function POST(req: NextRequest) {
   try {
     const body: RadioRequest = await req.json()
-    const { newsTitle, newsDescription, broadcastType, hour, financeData, voice = 'cantonese_female' } = body
+    const { newsTitle, newsDescription, broadcastType, hour, financeData, voice = 'tongtong' } = body
 
     if (hour === undefined || hour < 0 || hour > 23) {
       return NextResponse.json(
@@ -343,8 +349,12 @@ export async function POST(req: NextRequest) {
 export async function GET() {
   return NextResponse.json({
     schedule: PROGRAM_SCHEDULE,
-    availableVoices: ['cantonese_female', 'cantonese_male'],
+    availableVoices: ['tongtong', 'chuichui', 'xiaochen', 'jam', 'kazi', 'douji', 'luodo', 'cantonese_female', 'cantonese_male'],
     description: '24小時廣東話財經電台 API',
-    providers: { llm: 'BigModel', tts: 'Cantonese.ai' },
+    providers: { llm: 'BigModel (GLM-4)', tts: 'z.ai / Cantonese.ai' },
+    configStatus: {
+      bigModel: BIGMODEL_API_KEY ? 'configured' : 'not configured',
+      cantonese: CANTONESE_API_KEY ? 'configured' : 'not configured',
+    }
   })
 }
