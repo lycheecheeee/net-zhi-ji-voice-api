@@ -1,8 +1,284 @@
 <!DOCTYPE html>
-<html>
-<head><title>Test</title></head>
+<html lang="zh-HK">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Net 知己 AI 財經平台</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang HK', 'Microsoft JhengHei', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 40px;
+            max-width: 800px;
+            width: 100%;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+
+        h1 {
+            color: #2d3748;
+            font-size: 2.5rem;
+            margin-bottom: 20px;
+            font-weight: 700;
+        }
+
+        .subtitle {
+            color: #718096;
+            font-size: 1.2rem;
+            margin-bottom: 40px;
+            line-height: 1.6;
+        }
+
+        .features {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 40px;
+        }
+
+        .feature-card {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+            padding: 25px;
+            border-radius: 15px;
+            transition: transform 0.3s ease;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .feature-card.blue {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+        }
+
+        .feature-card.green {
+            background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+        }
+
+        .feature-icon {
+            font-size: 2rem;
+            margin-bottom: 15px;
+        }
+
+        .feature-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin-bottom: 10px;
+        }
+
+        .feature-desc {
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+
+        .buttons {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 25px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+        }
+
+        .btn.secondary {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
+
+        .status {
+            margin-top: 30px;
+            padding: 20px;
+            background: rgba(0, 0, 0, 0.05);
+            border-radius: 10px;
+            border-left: 4px solid #48bb78;
+        }
+
+        .status-title {
+            color: #2d3748;
+            font-weight: 600;
+            margin-bottom: 10px;
+        }
+
+        .status-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin: 10px 0;
+            color: #4a5568;
+        }
+
+        .status-indicator {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #48bb78;
+            display: inline-block;
+            margin-left: 10px;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 20px;
+            }
+
+            h1 {
+                font-size: 2rem;
+            }
+
+            .features {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
 <body>
-  <h1>成功！GitHub Pages 已運行。</h1>
-  <p>如果你的 API 需要後端，請注意這裡只能放靜態文件。</p>
+    <div class="container">
+        <h1>🎙️ Net 知己 AI 財經平台</h1>
+        <p class="subtitle">
+            24小時AI智能廣東話財經電台，提供實時市場分析、財經新聞和智能播報服務
+        </p>
+
+        <div class="features">
+            <div class="feature-card blue">
+                <div class="feature-icon">🤖</div>
+                <div class="feature-title">AI智能播報</div>
+                <div class="feature-desc">基於智譜AI的智能腳本生成，提供專業財經分析</div>
+            </div>
+
+            <div class="feature-card green">
+                <div class="feature-icon">🎤</div>
+                <div class="feature-title">粵語語音合成</div>
+                <div class="feature-desc">高品質Cantonese.ai語音合成，地道廣東話播報</div>
+            </div>
+
+            <div class="feature-card">
+                <div class="feature-icon">📈</div>
+                <div class="feature-title">實時財經數據</div>
+                <div class="feature-desc">恆生指數、美股期貨、黃金價格等實時更新</div>
+            </div>
+        </div>
+
+        <div class="buttons">
+            <button class="btn" onclick="testAPI()">測試API</button>
+            <button class="btn secondary" onclick="generateRadio()">生成廣播</button>
+        </div>
+
+        <div class="status">
+            <div class="status-title">🔧 服務狀態</div>
+            <div class="status-item">
+                <span>BigModel AI API</span>
+                <span class="status-indicator"></span>
+            </div>
+            <div class="status-item">
+                <span>Cantonese.ai TTS</span>
+                <span class="status-indicator"></span>
+            </div>
+            <div class="status-item">
+                <span>廣播腳本生成</span>
+                <span class="status-indicator"></span>
+            </div>
+            <div class="status-item">
+                <span>語音合成服務</span>
+                <span class="status-indicator"></span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        async function testAPI() {
+            try {
+                const response = await fetch('/api/health');
+                const data = await response.json();
+                
+                if (data.status === 'ok') {
+                    alert('✅ API服務正常運行\n\n服務: ' + data.service + '\n版本: ' + data.version);
+                } else {
+                    alert('❌ API服務異常');
+                }
+            } catch (error) {
+                alert('❌ 無法連接到API服務\n\n請確保服務正在運行');
+            }
+        }
+
+        async function generateRadio() {
+            const currentHour = new Date().getHours();
+            
+            try {
+                const response = await fetch('/api/radio', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        newsTitle: '測試廣播節目',
+                        broadcastType: 'finance',
+                        hour: currentHour,
+                        voice: 'cantonese_female'
+                    })
+                });
+
+                const data = await response.json();
+                
+                if (data.success) {
+                    const audioElement = document.createElement('audio');
+                    audioElement.controls = true;
+                    audioElement.src = 'data:audio/wav;base64,' + data.audioBase64;
+                    
+                    const container = document.querySelector('.container');
+                    const audioContainer = document.createElement('div');
+                    audioContainer.style.marginTop = '20px';
+                    audioContainer.innerHTML = '<h3>🎵 生成的廣播節目</h3>';
+                    audioContainer.appendChild(audioElement);
+                    container.appendChild(audioContainer);
+                    
+                    alert('✅ 廣播節目生成成功！\n\n節目: ' + data.programName + '\n腳本長度: ' + data.cantoneseScript.length + ' 字');
+                } else {
+                    alert('❌ 廣播生成失敗\n\n錯誤: ' + (data.error || '未知錯誤'));
+                }
+            } catch (error) {
+                alert('❌ 生成廣播時出錯\n\n' + error.message);
+            }
+        }
+
+        // 頁面載入完成後檢查服務狀態
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('🎙️ Net 知己 AI 財經平台已載入');
+            console.log('📡 API端點: /api/health, /api/radio, /api/tts');
+        });
+    </script>
 </body>
 </html>
