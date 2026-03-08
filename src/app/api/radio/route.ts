@@ -335,7 +335,9 @@ async function synthesizeVoice(
   try {
     const baseUrl = process.env.VERCEL_URL
       ? `https://${process.env.VERCEL_URL}`
-      : 'http://localhost:3000'
+      : process.env.NODE_ENV === 'production' 
+        ? `https://${process.env.VERCEL_PROJECT_NAME || 'net-zhi-ji-voice-api-123'}.vercel.app`
+        : 'http://localhost:3000'
 
     const response = await fetch(`${baseUrl}/api/tts`, {
       method: 'POST',
