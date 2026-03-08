@@ -8,8 +8,8 @@ const CANTONESE_API_URL = 'https://cantonese.ai/api/tts'
 
 // Cantonese.ai 語音 ID
 const CANTONESE_VOICE_IDS = {
-  cantonese_female: '2725cf0f-efe2-4132-9e06-62ad84b2973d',
-  cantonese_male: '2725cf0f-efe2-4132-9e06-62ad84b2973d',
+  cantonese_female: '91b6d38b-d4e9-42ce-bf3c-9793741c0d18',
+  cantonese_male: '91b6d38b-d4e9-42ce-bf3c-9793741c0d18',
 } as const
 
 // BigModel 聊天 API
