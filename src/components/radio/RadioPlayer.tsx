@@ -24,7 +24,7 @@ export default function RadioPlayer() {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const audioRef = useRef<HTMLAudioElement>(null)
-  const progressInterval = useRef<NodeJS.Timeout>()
+  const progressInterval = useRef<NodeJS.Timeout | null>(null)
 
   // 獲取當前時段節目
   const fetchCurrentProgram = async () => {
@@ -68,13 +68,15 @@ export default function RadioPlayer() {
       audioRef.current.play().catch(console.error)
 
       progressInterval.current = setInterval(() => {
-        setRadioProgress((prev) => {
-          if (prev >= 100) {
-            setRadioPlaying(false)
-            return 0
-          }
-          return prev + (100 / (radioProgram.duration || 1800))
-        })
+        const currentProgress = radioProgress
+        const newProgress = currentProgress + (100 / (radioProgram.duration || 1800))
+        
+        if (currentProgress >= 100) {
+          setRadioPlaying(false)
+          setRadioProgress(0)
+        } else {
+          setRadioProgress(newProgress)
+        }
       }, 1000)
     } else {
       if (audioRef.current) {

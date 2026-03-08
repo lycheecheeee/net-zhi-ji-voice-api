@@ -263,7 +263,13 @@ export async function fetchStockList(symbols: string[]): Promise<Array<{
   change: number
   changePercent: number
 }>> {
-  const results = []
+  const results: Array<{
+    symbol: string
+    name: string
+    price: number
+    change: number
+    changePercent: number
+  }> = []
 
   for (const symbol of symbols) {
     const data = await fetchYahooFinance(symbol)
